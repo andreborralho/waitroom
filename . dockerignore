@@ -1,0 +1,8 @@
+node_modules
+npm-debug.log
+jest.config.js
+**/__tests__
+**/*.test.js
+**/coverage
+**/*.spec.js
+**/*.mock.js

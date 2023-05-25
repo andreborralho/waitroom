@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: waitroom-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: waitroom
+  template:
+    metadata:
+      labels:
+        app: waitroom
+    spec:
+      containers:
+        - name: ebf254f0047b
+          image: localhost:5000/waitroom-0:latest
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 60
+            periodSeconds: 60
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 60
+            periodSeconds: 60
+            successThreshold: 1
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 10
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: OPENAI_API_KEY
+              value: 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
