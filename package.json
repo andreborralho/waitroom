@@ -14,6 +14,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@jest/globals": "^29.5.0",
+    "@shelf/jest-mongodb": "^4.1.7",
     "@types/jest": "^29.5.1",
     "@types/node": "^20.2.1",
     "eslint": "^8.41.0",
@@ -24,7 +26,10 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
+    "aws-sdk": "^2.1386.0",
+    "bottleneck": "^2.19.5",
     "mongodb": "^5.5.0",
+    "mongodb-memory-server": "^8.12.2",
     "openai": "^3.2.1"
   }
 }

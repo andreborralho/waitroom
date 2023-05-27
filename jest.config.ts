@@ -1,15 +1,14 @@
-import type { Config } from 'jest';
+import type { JestConfigWithTsJest } from 'ts-jest'
 
-const config: Config = {
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: -10,
-    },
+const config: JestConfigWithTsJest = {
+  extensionsToTreatAsEsm: ['.ts'],
+  verbose: true,
+  preset: 'ts-jest/presets/default-esm',
+  testEnvironment: 'node',
+  transform: {
+    '^.+\\.(ts|tsx)?$': ['ts-jest', { useESM: true }]
   },
-  verbose: true
-};
+  testPathIgnorePatterns: ['./dist']
+}
 
-export default config;
+export default config

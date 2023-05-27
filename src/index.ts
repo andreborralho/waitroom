@@ -1,29 +1,12 @@
-import { IncomingMessage, ServerResponse } from "http";
+import { IncomingMessage, ServerResponse, createServer } from 'http';
+import { handleOpenAISummary, handleSummaryRequest } from "./controllers/summary-controller";
+import { queueName, sqs, queueUrl } from "./config/config";
+import Bottleneck from 'bottleneck';
+import { Message } from 'aws-sdk/clients/sqs';
 
-const http = require('http');
-const { Configuration, OpenAIApi } = require('openai');
-var MongoClient = require('mongodb').MongoClient;
-var url = "mongodb://localhost:27017/waitroom";
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-  //apiKey: "12345",
-});
-const openai = new OpenAIApi(configuration);
-
-const server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
+const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
   if (req.method === 'POST' && req.url === '/summary-title') {
-    let requestBody = '';
-    req.on('data', (chunk) => {
-      requestBody += chunk.toString();
-    });
-    req.on('end', async () => {
-      const requestJson = JSON.parse(requestBody);
-      const response = await requestTitle(requestJson.text);
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.write(response);
-      res.end();
-    });
+    handleSummaryRequest(req, res);
   }
   else if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -38,69 +21,54 @@ server.listen(3000, () => {
   console.log('Server listening on port 3000');
 });
 
-export async function requestTitle(text: string) {
-  const foundSummary = await findTextInDatabase(text);
-  if (foundSummary) {
-    return foundSummary.title;
-  }
-  try {
-    const response = await openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: "write a short, one sentence, title for this text: \"´" + text,
-      temperature: 1,
-      max_tokens: 256,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-    });
-    const title = response.data.choices[0].text.replace(/\.\s*$/, '');
-    saveToDatabase(title, text);
-    return title;
-  } catch (error: any) {
-    const { status, statusText } = error.response;
-    if (status === 401) {
-      console.error('Unauthorized:', statusText);
-      return statusText;
-    }
-    else if (status === 429) {
-      console.error('Rate limit exceeded:', statusText);
-      return statusText;
-    }
-  }
+createSummaryQueue();
+setInterval(async () => {
+  await handleSummaryQueue();
+}, 200);
+
+
+async function createSummaryQueue(): Promise<string> {
+  const createQueueParams = {
+    QueueName: queueName,
+  };
+  const createQueueResponse = await sqs.createQueue(createQueueParams).promise();
+  console.info(createQueueResponse);
+  return createQueueResponse.QueueUrl!;
 }
 
-async function saveToDatabase(title: string, text: string) {
-  const db = await MongoClient.connect(url);
+export async function handleSummaryQueue(): Promise<void> {
+  const receiveMessageParams = {
+    QueueUrl: queueUrl,
+    MaxNumberOfMessages: 10,
+  };
 
-  try {
-    const dbo = db.db('waitroom');
-    const summaryDocument = { title: title, text: text };
-    await dbo.collection('summaries').insertOne(summaryDocument);
-  } finally {
-    db.close();
-  }
+  const { Messages } = await sqs.receiveMessage(receiveMessageParams).promise();
+  if (!Messages) { return; }
+
+  const limiter = new Bottleneck({ maxConcurrent: 5, minTime: 200 });
+  const promises = Messages.map((message: Message) => limiter.schedule(async () => {
+    handleMessage(message);
+  }));
+  await Promise.all(promises);
 }
 
-async function findTextInDatabase(text: string) {
-  const db = await MongoClient.connect(url);
+async function handleMessage(message: Message): Promise<void> {
+  const text = message.Body;
+  if (!text) { throw new Error('No text passed in message body'); }
+  console.log('Handling job');
 
-  try {
-    const dbo = db.db('waitroom');
-    const summary = await dbo.collection('summaries').findOne({ text: text });
-    return summary;
-  } finally {
-    db.close();
-  }
+  handleOpenAISummary(text);
+  deleteMessage(message);
+}
+
+
+async function deleteMessage(message: Message) {
+  const deleteMessageParams = {
+    QueueUrl: queueUrl,
+    ReceiptHandle: message.ReceiptHandle!,
+  };
+  await sqs.deleteMessage(deleteMessageParams).promise();
 }
 
 // - integration tests
-// - fix the kubernetes deploy
-
-// - organize the files
-// - abstract the database integration to make it easier to change to another one
-
 // - queued, complete, error -> request ID
-// - 5 requests per second
-
-// - sound clip as argument -> use aws Transcribe to transcribe it
-// - upload to github

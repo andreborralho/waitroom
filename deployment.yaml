@@ -51,4 +51,4 @@ spec:
             - name: NODE_ENV
               value: production
             - name: OPENAI_API_KEY
-              value: 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
+              value: ${OPENAI_API_KEY}

@@ -1,7 +1,7 @@
 node_modules
 npm-debug.log
 jest.config.js
-**/__tests__
+**/tests
 **/*.test.js
 **/coverage
 **/*.spec.js
