@@ -1,9 +1,9 @@
 import { openai, queueUrl, sqs } from '../config/config';
-import { findTextInDatabase } from '../repositories/summary-repository';
+import { findSummaryByText, saveSummaryWithText } from '../repositories/summary-repository';
 
 
 export async function getSummaryTitle(text: string): Promise<string | undefined> {
-  const foundSummary = await findTextInDatabase(text);
+  const foundSummary = await findSummaryByText(text);
   if (foundSummary) {
     return 'Summary already exists';
   }
@@ -24,11 +24,11 @@ export async function requestSummaryTitle(text: string) {
 }
 
 async function enqueueSummaryJob(text: string): Promise<void> {
+  const summaryId = await saveSummaryWithText(text);
   const params = {
-    MessageBody: text,
+    MessageBody: summaryId,
     QueueUrl: queueUrl,
   };
-
   try {
     await sqs.sendMessage(params).promise();
     console.log('Job added to the queue');

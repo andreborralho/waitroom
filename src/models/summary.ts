@@ -1,4 +1,6 @@
 export interface Summary {
-  title: string;
+  title: string | null;
   text: string;
+  createdAt: Date;
+  requestStatus: 'queued' | 'complete' | 'error';
 }

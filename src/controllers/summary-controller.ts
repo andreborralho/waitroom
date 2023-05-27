@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { getSummaryTitle, requestSummaryTitle } from "../services/summary-service";
-import { saveToDatabase } from '../repositories/summary-repository';
+import { updateSummaryWithFailedStatus, updateSummaryWithTitle } from "../repositories/summary-repository";
 
 export function handleSummaryRequest(req: IncomingMessage, res: ServerResponse) {
   let requestBody = '';
@@ -16,19 +16,18 @@ export function handleSummaryRequest(req: IncomingMessage, res: ServerResponse) 
   });
 }
 
-export async function handleOpenAISummary(text: string): Promise<void> {
+export async function handleOpenAISummary(summaryId: string, text: string): Promise<void> {
   try {
     const result = await requestSummaryTitle(text);
     const title = result.data.choices[0]?.text?.replace(/\.\s*$/, '');
     if (!title) { throw new Error('No title found in response data'); }
-
-    await saveToDatabase(title, text);
+    await updateSummaryWithTitle(summaryId, title);
   } catch (error: any) {
-    return handleOpenAIError(error);
+    return handleOpenAIError(summaryId, error);
   }
 }
 
-async function handleOpenAIError(error: any) {
+async function handleOpenAIError(summaryId: string, error: any) {
   const { status, statusText } = error.response;
   if (status === 401) {
     console.error('Unauthorized:', statusText);
@@ -36,5 +35,6 @@ async function handleOpenAIError(error: any) {
   else if (status === 429) {
     console.error('Rate limit exceeded:', statusText);
   }
+  updateSummaryWithFailedStatus(summaryId);
   return statusText;
 }

@@ -3,6 +3,7 @@ import { handleOpenAISummary, handleSummaryRequest } from "./controllers/summary
 import { queueName, sqs, queueUrl } from "./config/config";
 import Bottleneck from 'bottleneck';
 import { Message } from 'aws-sdk/clients/sqs';
+import { findSummaryById } from './repositories/summary-repository';
 
 const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
   if (req.method === 'POST' && req.url === '/summary-title') {
@@ -53,11 +54,14 @@ export async function handleSummaryQueue(): Promise<void> {
 }
 
 async function handleMessage(message: Message): Promise<void> {
-  const text = message.Body;
-  if (!text) { throw new Error('No text passed in message body'); }
+  const summaryId = message.Body;
+  if (!summaryId) { throw new Error('No summary ID passed in message body'); }
   console.log('Handling job');
 
-  handleOpenAISummary(text);
+  const summaryDocument = await findSummaryById(summaryId);
+  if (summaryDocument) {
+    handleOpenAISummary(summaryId, summaryDocument.text);
+  }
   deleteMessage(message);
 }
 
@@ -71,4 +75,3 @@ async function deleteMessage(message: Message) {
 }
 
 // - integration tests
-// - queued, complete, error -> request ID
