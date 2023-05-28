@@ -5,7 +5,7 @@ import Bottleneck from 'bottleneck';
 import { Message } from 'aws-sdk/clients/sqs';
 import { findSummaryById } from './repositories/summary-repository';
 
-const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+export const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
   if (req.method === 'POST' && req.url === '/summary-title') {
     handleSummaryRequest(req, res);
   }
@@ -28,13 +28,11 @@ setInterval(async () => {
 }, 200);
 
 
-async function createSummaryQueue(): Promise<string> {
+export async function createSummaryQueue() {
   const createQueueParams = {
     QueueName: queueName,
   };
-  const createQueueResponse = await sqs.createQueue(createQueueParams).promise();
-  console.info(createQueueResponse);
-  return createQueueResponse.QueueUrl!;
+  await sqs.createQueue(createQueueParams).promise();
 }
 
 export async function handleSummaryQueue(): Promise<void> {

@@ -28,13 +28,20 @@ export async function handleOpenAISummary(summaryId: string, text: string): Prom
 }
 
 async function handleOpenAIError(summaryId: string, error: any) {
-  const { status, statusText } = error.response;
-  if (status === 401) {
-    console.error('Unauthorized:', statusText);
+  if (!error?.response) {
+    console.error('Unexpected data encountered:', error);
+    updateSummaryWithFailedStatus(summaryId);
+    throw error;
   }
-  else if (status === 429) {
-    console.error('Rate limit exceeded:', statusText);
+  else {
+    const { status, statusText } = error.response;
+    if (status === 401) {
+      console.error('Unauthorized:', statusText);
+    }
+    else if (status === 429) {
+      console.error('Rate limit exceeded:', statusText);
+    }
+    updateSummaryWithFailedStatus(summaryId);
+    return statusText;
   }
-  updateSummaryWithFailedStatus(summaryId);
-  return statusText;
 }
