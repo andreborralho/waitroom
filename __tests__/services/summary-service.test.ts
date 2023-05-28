@@ -1,64 +1,47 @@
+// import { sqs } from "../../src/config/config";
+import { findSummaryByText, saveSummaryWithText } from "../../src/repositories/summary-repository";
 import { getSummaryTitle } from "../../src/services/summary-service";
 
-// describe('getSummaryTitle', () => {
-//   // Mock the dependencies or functions used in the getSummaryTitle function
-//   const findTextInDatabase = jest.fn();
-//   const requestSummaryTitle = jest.fn();
-//   const saveToDatabase = jest.fn();
+// jest.mock('../../src/config/config', () => ({
+//   sqs: jest.fn().mockImplementation(() => ({
+//     sendMessage: jest.fn().mockReturnThis()
+//   })),
+// }));
 
-//   beforeEach(() => {
-//     // Reset the mock function calls and behavior before each test
-//     findTextInDatabase.mockReset();
-//     requestSummaryTitle.mockReset();
-//     saveToDatabase.mockReset();
-//   });
+jest.mock('../../src/services/summary-service', () => ({
+  findSummaryByText: jest.fn(),
+  enqueueSummaryJob: jest.fn(),
+}));
 
-//   test('should return the title from the database if found', async () => {
-//     const mockTitle = 'Mock Title';
-//     findTextInDatabase.mockResolvedValue({ title: mockTitle });
+describe('getSummaryTitle', () => {
+  const summaryText = 'Test summary';
 
-//     const result = await getSummaryTitle('some text');
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
 
-//     expect(findTextInDatabase).toHaveBeenCalledWith('some text');
-//     expect(result).toBe(mockTitle);
-//     expect(requestSummaryTitle).not.toHaveBeenCalled();
-//     expect(saveToDatabase).not.toHaveBeenCalled();
-//   });
+  it('should return "Summary already exists" if the summary already exists', async () => {
+    (findSummaryByText as jest.Mock).mockResolvedValueOnce({ _id: '123', title: 'Test summary' });
 
-//   test('should return the generated title and save to the database if not found in the database', async () => {
-//     const mockGeneratedTitle = 'Generated Title';
-//     requestSummaryTitle.mockResolvedValue({ data: { choices: [{ text: mockGeneratedTitle }] } });
+    const result = await getSummaryTitle(summaryText);
 
-//     const result = await getSummaryTitle('some text');
+    expect(result).toBe('Summary already exists');
+    expect(findSummaryByText).toHaveBeenCalledWith(summaryText);
+    expect(saveSummaryWithText).not.toHaveBeenCalled();
+  });
 
-//     expect(findTextInDatabase).toHaveBeenCalledWith('some text');
-//     expect(requestSummaryTitle).toHaveBeenCalledWith('some text');
-//     expect(saveToDatabase).toHaveBeenCalledWith(mockGeneratedTitle, 'some text');
-//     expect(result).toBe(mockGeneratedTitle);
-//   });
+  it('should return "Queueing job" if the summary does not exist', async () => {
+    (findSummaryByText as jest.Mock).mockResolvedValueOnce(null);
+    //const mockSendMessage = (sqs as any).mock.instances[0].sendMessage;
 
-//   test('should handle errors and return appropriate response', async () => {
-//     const mockError = new Error('Error message');
-//     const mockErrorResponse = {
-//       response: {
-//         status: 401,
-//         statusText: 'Unauthorized',
-//       },
-//     };
+    const result = await getSummaryTitle(summaryText);
 
-//     requestSummaryTitle.mockRejectedValue(mockError);
-
-//     // Unauthorized error test
-//     let result = await getSummaryTitle('some text');
-//     expect(result).toBe('Unauthorized');
-
-//     // Rate limit exceeded error test
-//     requestSummaryTitle.mockRejectedValue(mockErrorResponse);
-//     result = await getSummaryTitle('some text');
-//     expect(result).toBe('Rate limit exceeded');
-
-//     expect(findTextInDatabase).toHaveBeenCalledWith('some text');
-//     expect(requestSummaryTitle).toHaveBeenCalledWith('some text');
-//     expect(saveToDatabase).not.toHaveBeenCalled();
-//   });
-// });
+    expect(result).toBe('Queueing job');
+    expect(findSummaryByText).toHaveBeenCalledWith(summaryText);
+    expect(saveSummaryWithText).toHaveBeenCalledWith(summaryText);
+    // expect(mockSendMessage).toHaveBeenCalledWith({
+    //   QueueUrl: process.env.SUMMARY_QUEUE_URL,
+    //   MessageBody: JSON.stringify({ text: summaryText }),
+    // });
+  });
+});
