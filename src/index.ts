@@ -63,7 +63,6 @@ async function handleMessage(message: Message): Promise<void> {
   deleteMessage(message);
 }
 
-
 async function deleteMessage(message: Message) {
   const deleteMessageParams = {
     QueueUrl: queueUrl,
@@ -71,5 +70,3 @@ async function deleteMessage(message: Message) {
   };
   await sqs.deleteMessage(deleteMessageParams).promise();
 }
-
-// - integration tests

@@ -1,4 +1,3 @@
-
 import { handleOpenAISummary } from "./../../src/controllers/summary-controller";
 import { updateSummaryWithFailedStatus, updateSummaryWithTitle } from "../../src/repositories/summary-repository";
 import { requestSummaryTitle } from "../../src/services/summary-service";
@@ -50,7 +49,6 @@ describe('handleOpenAISummary()', () => {
     expect(updateSummaryWithFailedStatus).toHaveBeenCalledWith(summaryId);
     expect(updateSummaryWithTitle).not.toHaveBeenCalled();
     expect(requestSummaryTitleResult).toBe('Unauthorized');
-    //expect(handleOpenAIError).toHaveBeenCalledWith(summaryId, error);
   });
 
   it('should handle 401 error thrown by requestSummaryTitle()', async () => {
@@ -66,6 +64,5 @@ describe('handleOpenAISummary()', () => {
     expect(updateSummaryWithFailedStatus).toHaveBeenCalledWith(summaryId);
     expect(updateSummaryWithTitle).not.toHaveBeenCalled();
     expect(requestSummaryTitleResult).toBe('Rate limit exceeded');
-    //expect(handleOpenAIError).toHaveBeenCalledWith(summaryId, error);
   });
 });

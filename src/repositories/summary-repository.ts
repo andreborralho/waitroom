@@ -42,7 +42,6 @@ export async function findSummaryById(summaryId: string): Promise<Summary | null
   });
 }
 
-
 async function withDatabase<T>(callback: (dbo: Db) => Promise<T>): Promise<T> {
   const connection = await MongoClient.connect(databaseUrl);
 

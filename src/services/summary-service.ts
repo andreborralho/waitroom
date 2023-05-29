@@ -1,7 +1,6 @@
 import { openai, queueUrl, sqs } from '../config/config';
 import { findSummaryByText, saveSummaryWithText } from '../repositories/summary-repository';
 
-
 export async function getSummaryTitle(text: string): Promise<string | undefined> {
   const foundSummary = await findSummaryByText(text);
   if (foundSummary) {
